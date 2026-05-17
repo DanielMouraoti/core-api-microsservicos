@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # Nossa API Python
+  api:
+    build: .
+    container_name: core_api
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongodb
+      - redis
+      - rabbitmq
+
+  # Nosso Worker Python
+  worker:
+    build: .
+    container_name: core_worker
+    command: python worker.py
+    depends_on:
+      - rabbitmq
+
+  # Infraestrutura
+  mongodb:
+    image: mongo:latest
+    container_name: core_mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    container_name: core_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: core_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
