@@ -1,6 +1,6 @@
-# 🚀 Core API - Microsserviços, Cache, IaC e CI/CD na Nuvem
+# 🚀 Core API - Microsserviços, Cache, IaC, CI/CD e Kubernetes na Nuvem
 
-Este projeto evoluiu de uma Prova de Conceito (PoC) local para uma arquitetura conteinerizada robusta e automatizada, implantada na nuvem pública (**Microsoft Azure**). O ecossistema combina desenvolvimento de microsserviços de alta performance com práticas modernas de **IaC (Infraestrutura como Código)** e **CI/CD (Integração e Implantação Contínuas)**.
+Este projeto evoluiu de uma Prova de Conceito (PoC) local para uma infraestrutura moderna, resiliente e altamente escalável, orquestrada via **Kubernetes** na nuvem pública (**Google Cloud Platform - GCP**). O ecossistema combina o desenvolvimento de microsserviços de alta performance com práticas avançadas de **IaC (Infraestrutura como Código)** e **CI/CD (Integração e Implantação Contínuas)**.
 
 ---
 
@@ -19,44 +19,48 @@ graph TD
         DH[(Docker Hub Registry)]
     end
 
-    %% Infraestrutura Azure
-    subgraph "Nuvem Microsoft Azure (Canadá)"
-        VM[Máquina Virtual Ubuntu <br> vm-core-api]
-        FW[Network Security Group <br> Firewall: Portas 22, 8000]
+    %% Infraestrutura GCP
+    subgraph "Google Cloud Platform - GCP (us-central1)"
+        VPC[Rede VPC Privada <br> gke-vpc]
         
-        subgraph "Ambiente Docker Orchestrating"
-            API[API FastAPI <br> Porta 8000]
-            Worker[Worker Assíncrono]
-            Redis[(Redis Cache)]
-            Mongo[(MongoDB)]
-            Rabbit[[RabbitMQ]]
+        subgraph "Cluster Kubernetes GKE (Autopilot)"
+            subgraph "Pods da Aplicação"
+                API_Pod1[Pod: API FastAPI <br> Replica 1]
+                API_Pod2[Pod: API FastAPI <br> Replica 2]
+            end
+            
+            %% Componentes em transição para o cluster
+            subgraph "Serviços de Suporte (Local/PoC)"
+                Redis[(Redis Cache)]
+                Mongo[(MongoDB)]
+                Rabbit[[RabbitMQ]]
+            end
         end
     end
 
     %% Ferramentas de Provisionamento
-    TF[Terraform <br> Provisionamento]
-    AN[Ansible <br> Configuração]
+    TF[Terraform <br> IaC Declarativo]
 
     %% Fluxo de Infraestrutura (IaC)
-    TF -->|1. Cria Infra/Network| VM
-    AN -->|2. Configura VM & Instala Docker| VM
+    TF -->|1. Provisiona VPC & Cluster GKE| VPC
 
     %% Fluxo de Código (CI)
-    Dev -->|3. Git Push Code| GH
-    GH -->|4. Dispara Trigger| GHA
-    GHA -->|5. Build & Push Imagem| DH
+    Dev -->|2. Git Push Code| GH
+    GH -->|3. Dispara Trigger| GHA
+    GHA -->|4. Build & Push Imagem| DH
 
-    %% Fluxo de Execução
-    Cliente -->|6. Requisições REST| FW
-    FW --> API
-    API -->|Cache| Redis
-    API -->|Persistência| Mongo
-    API -->|Mensageria| Rabbit
-    Rabbit --> Worker
-    Worker --> Mongo
+    %% Fluxo de Implantação e Execução
+    DH -->|5. Puxa Imagem da API| API_Pod1
+    DH -->|6. Puxa Imagem da API| API_Pod2
+    
+    Cliente -->|7. Requisições REST| API_Pod1 & API_Pod2
+    
+    %% Conexões lógicas da API
+    API_Pod1 & API_Pod2 -.->|Cache| Redis
+    API_Pod1 & API_Pod2 -.->|Persistência| Mongo
+    API_Pod1 & API_Pod2 -.->|Mensageria| Rabbit
 
-    classDef infra fill:#f5f5f5,stroke:#333,stroke-width:1px;
-    classDef cloud fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef cloud fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px;
     classDef automation fill:#efebe9,stroke:#5d4037,stroke-width:2px;
-    class TF,AN automation;
-    class VM cloud;
+    class TF automation;
+    class VPC,API_Pod1,API_Pod2 cloud;
