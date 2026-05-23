@@ -3,7 +3,7 @@ name: Continuous Integration - Build & Push Docker
 on:
   push:
     branches:
-      - main # A esteira vai rodar toda vez que chegar código novo na branch main
+      - main
 
 jobs:
   build-and-push:
